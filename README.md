@@ -4,12 +4,12 @@ Monorepo layout:
 
 | Path | Contents |
 |------|----------|
-| `specs/001-snapshot-ai-rebuild/` | Spec Kit: spec, plan, tasks, contracts (implementation backlog) |
-| `app/` | **snap-shot.ai** — Vite + React + Supabase (frontend + Edge Functions + migrations) |
+| `specs/001-snapshot-ai-rebuild/` | Spec Kit: specification, plan, tasks, contracts (implementation backlog) |
+| `app/` | **snap-shot.ai** — Vite + React + Supabase (SPA, Edge Functions, migrations, `.planning/` engineering notes) |
 | `.specify/` | Spec Kit templates and scripts |
-| `docs/` | Quick guides and conventions |
+| `docs/` | Guides and conventions |
 
-## Run the web app (локально / local)
+## Run the web application locally
 
 ```bash
 cd app
@@ -19,21 +19,25 @@ npm install
 npm run dev
 ```
 
-Vite is configured for port **8080** (see `app/vite.config.ts`). Open `http://localhost:8080`.
+The dev server runs on **http://localhost:8080** (see `app/vite.config.ts`).
 
-**Українською:** детальні кроки — у [docs/app-run.md](docs/app-run.md).
+Full setup (environment variables, database CLI, CI secrets): **[docs/app-run.md](docs/app-run.md)**.
 
-## Database & Edge Functions
+## Database and Edge Functions
 
 From `app/`:
 
 ```bash
-npm run db:link    # once, needs SUPABASE_ACCESS_TOKEN in .env
+npm run db:link    # once; requires SUPABASE_ACCESS_TOKEN in .env
 npm run db:push    # apply migrations
 ```
 
 Do **not** commit `app/.env` (gitignored). Use `app/.env.example` as a template.
 
+## Task file paths
+
+Tasks in `specs/001-snapshot-ai-rebuild/tasks.md` list paths like `src/...` or `supabase/...`. They are **relative to `app/`** (for example, `src/pages/Generator.tsx` means `app/src/pages/Generator.tsx`).
+
 ## Git remote
 
-Default remote: `origin` → GitHub repo created for this workspace.
+Default remote: `origin` — GitHub repository for this workspace.

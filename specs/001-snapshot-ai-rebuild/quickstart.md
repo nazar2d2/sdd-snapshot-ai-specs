@@ -1,18 +1,22 @@
 # Quickstart: Verify snap-shot.ai Phase 3
 
-**Feature**: 001-snapshot-ai-rebuild
-**Date**: 2026-05-12
+**Feature**: 001-snapshot-ai-rebuild  
+**Date**: 2026-05-12  
 **Purpose**: Manual verification checklist for each user story acceptance test.
+
+**Working directory**: Run shell commands from the **`app/`** folder (`cd app`), because the application lives in the monorepo `app/` directory.
 
 ---
 
 ## Pre-requisites
 
 ```bash
+cd app
+
 # Ensure migrations are applied
 npm run db:push
 
-# Ensure edge functions are deployed
+# Ensure edge functions are deployed (from app/, where supabase/config.toml lives)
 supabase functions deploy generate-image
 supabase functions deploy admin-create-user
 supabase functions deploy admin-delete-user

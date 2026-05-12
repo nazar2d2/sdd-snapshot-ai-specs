@@ -6,6 +6,8 @@
 **Organization**: Tasks are grouped by user story. Each story is independently testable.
 Each task references the exact file to be changed.
 
+**Application root (`app/`)**: Paths that start with `src/`, `supabase/`, `tailwind`, `package`, or `README` are relative to the **`app/`** directory in this monorepo. Example: `src/pages/Generator.tsx` means `app/src/pages/Generator.tsx`. Run `npm` and Supabase CLI commands from `app/`.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies on same file)
