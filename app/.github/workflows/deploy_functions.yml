@@ -1,0 +1,27 @@
+name: Deploy Edge Functions
+# Redeploy: GitHub → Actions → Run workflow  
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/deploy_functions.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy Functions
+        run: |
+          supabase functions deploy generate-image fix-image create-checkout stripe-webhook --project-ref phkwivrcuuvzpgzvvmkv
+        env:
+          # Set in GitHub: Settings → Secrets and variables → Actions → SUPABASE_ACCESS_TOKEN
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

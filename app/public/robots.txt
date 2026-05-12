@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /admin
+Disallow: /admin/login
+Disallow: /auth
+Disallow: /reset-password
+Disallow: /prompt-builder
+
+Sitemap: https://snapshot.app/sitemap.xml

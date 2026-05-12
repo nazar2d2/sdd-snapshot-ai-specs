@@ -1,0 +1,20 @@
+# Dokploy: Compose path → ./docker-compose.yml; needs network "dokploy-network".
+# Build picks up `.env` in repo root (see .dockerignore) or `VITE_SUPABASE_PUBLISHABLE_KEY` from Compose/Dokploy build args.
+
+services:
+  snapshot-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-}
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true

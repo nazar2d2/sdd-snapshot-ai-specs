@@ -1,0 +1,19 @@
+project_id = "phkwivrcuuvzpgzvvmkv"
+
+[functions]
+  [functions.admin-purchases]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.create-checkout]
+    verify_jwt = false
+  [functions.fix-image]
+    verify_jwt = false
+  [functions.generate-image]
+    verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = true
+  [functions.reap-stale-jobs]
+    verify_jwt = false
+  [functions.stripe-webhook]
+    verify_jwt = false

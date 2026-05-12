@@ -1,0 +1,1 @@
+UPDATE public.profiles SET credits = GREATEST(1, CEIL(credits::numeric / 2)) WHERE credits > 0 AND NOT COALESCE(is_unlimited, false);
