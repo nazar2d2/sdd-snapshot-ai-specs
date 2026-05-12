@@ -742,6 +742,34 @@ serve(async (req) => {
           const attempt = (task.attempt_count || 0) + 1;
           const viewKey = String(task.view_key);
 
+          if (isHdJob && viewKey !== "fullProduct") {
+            const { data: baseAnchorTask } = await adminClient
+              .from("generation_tasks")
+              .select("status")
+              .eq("job_id", dbJobId)
+              .eq("view_key", "fullProduct")
+              .eq("is_base", true)
+              .maybeSingle();
+            if (baseAnchorTask?.status !== "done") {
+              await updateJobCounts(dbJobId);
+              const { data: refreshed } = await adminClient
+                .from("generation_jobs")
+                .select("status, tasks_total, tasks_done, tasks_failed")
+                .eq("id", dbJobId)
+                .maybeSingle();
+              return new Response(
+                JSON.stringify({
+                  status: "anchor_pending",
+                  retryAfterMs: 3000,
+                  message: "Anchor image is still generating. Retry after the specified delay.",
+                  jobId: dbJobId,
+                  progress: refreshed || { status: "running", tasks_total: 0, tasks_done: 0, tasks_failed: 0 },
+                }),
+                { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+              );
+            }
+          }
+
           console.log(`[TASK-HD] ${task.view_name} attempt=${attempt}/${effectiveMaxAttempts} resolution=${jobResolution} model=${jobModel || ENGINE} providerTimeout=${isHdJob ? "120s" : "60s"} internalRetries=${isHdJob ? "disabled" : "enabled"}`);
 
           // STATE-02: Atomic claim via FOR UPDATE SKIP LOCKED — prevents concurrent worker race.
@@ -898,6 +926,18 @@ serve(async (req) => {
       }
 
       const identityAnchor: IdentityAnchor | null = anchorUrl ? { anchorUrl, modelProfile } : null;
+
+      if (isHdJob && !identityAnchor && (totalTaskCount ?? 0) > 1) {
+        return new Response(
+          JSON.stringify({
+            status: "anchor_pending",
+            retryAfterMs: 3000,
+            message: "Anchor image is still generating. Retry after the specified delay.",
+            jobId: dbJobId,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
 
       // ── Stale task recovery ────────────────────────────────────────────
       const STALE_RUNNING_MS = Math.max(90_000, SPEED_SLA.perImageTimeoutMs * 1.5);

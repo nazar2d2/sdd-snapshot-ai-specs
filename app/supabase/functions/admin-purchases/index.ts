@@ -1,13 +1,9 @@
 import Stripe from "npm:stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders();
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -28,37 +24,17 @@ Deno.serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const userId = userData.user.id;
-    const email = userData.user.email ?? "";
-
-    // Check admin via service role
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
-
-    const { data: roleData } = await serviceClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    const isAdminUser = !!roleData || email.toLowerCase() === "snapshot@gmail.com";
-
-    if (!isAdminUser) {
+    const { data: isAdmin, error: adminRpcError } = await supabase.rpc("is_admin");
+    if (adminRpcError || !isAdmin) {
       return new Response(JSON.stringify({ error: "Access denied" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Parse query params
     const url = new URL(req.url);
-    const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100);
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "50", 10), 100);
 
-    // Fetch from Stripe
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not configured");
 

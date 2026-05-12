@@ -3,25 +3,18 @@
   Run this script in Supabase SQL Editor to enable Admin capabilities.
 */
 
--- 1. Helper function to verify Admin status
--- Only 'snapshot@gmail.com' is allowed to perform admin actions.
+-- 1. Helper function to verify Admin status (user_roles: role = admin)
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
-DECLARE
-  current_email TEXT;
 BEGIN
-  -- Get the email of the currently authenticated user
-  current_email := auth.jwt() ->> 'email';
-  
-  -- Strict check
-  IF current_email = 'snapshot@gmail.com' THEN
-    RETURN TRUE;
-  ELSE
+  IF auth.uid() IS NULL THEN
     RETURN FALSE;
   END IF;
+  RETURN public.has_role(auth.uid(), 'admin');
 END;
 $$;
 

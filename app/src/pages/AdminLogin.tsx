@@ -20,42 +20,33 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      {
-        const trimmedEmail = email.trim();
-        const isSnapshotAdmin = trimmedEmail.toLowerCase() === "snapshot@gmail.com";
+      const trimmedEmail = email.trim();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      });
 
-        let signInResult = await supabase.auth.signInWithPassword({
-          email: trimmedEmail,
-          password,
-        });
+      if (signInError) throw signInError;
 
-        if (signInResult.error) throw signInResult.error;
+      const { data: isAdmin, error: adminError } = await supabase.rpc("is_admin");
 
-        // Verify admin role via RPC
-        const { data: isAdmin, error: adminError } = await supabase.rpc("is_admin");
-
-        // Fallback: If RPC fails (e.g. not setup) or returns error, check email directly
-        const isEmailAdmin = signInResult.data.user?.email === 'snapshot@gmail.com';
-
-        if (adminError) {
-          console.warn("is_admin RPC failed, falling back to email check:", adminError);
-          if (!isEmailAdmin) {
-            await supabase.auth.signOut();
-            throw new Error("Access denied. Admin privileges required.");
-          }
-        } else if (!isAdmin && !isEmailAdmin) {
-          // Sign out if not admin
-          await supabase.auth.signOut();
-          throw new Error("Access denied. Admin privileges required.");
-        }
-
-        toast({ title: "Welcome, Admin!", description: "Successfully logged in.", variant: "success" });
-        navigate("/admin", { replace: true });
+      if (adminError) {
+        await supabase.auth.signOut();
+        throw new Error(adminError.message || "Could not verify admin status.");
       }
-    } catch (error: any) {
+
+      if (!isAdmin) {
+        await supabase.auth.signOut();
+        throw new Error("Access denied. This account does not have admin privileges.");
+      }
+
+      toast({ title: "Welcome, Admin!", description: "Successfully logged in.", variant: "success" });
+      navigate("/admin", { replace: true });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Invalid credentials or insufficient privileges.";
       toast({
         title: "Login failed",
-        description: error.message || "Invalid credentials or insufficient privileges.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -107,7 +98,7 @@ export default function AdminLogin() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="snapshot@gmail.com"
+                    placeholder="you@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-11 h-12"

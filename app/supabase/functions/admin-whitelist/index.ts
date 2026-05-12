@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 type Action = "add" | "remove";
 
@@ -34,6 +30,7 @@ async function findUserIdByEmail(
 }
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders();
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -63,10 +60,9 @@ serve(async (req) => {
     }
 
     const callerEmail = (userData.user.email ?? "").trim();
-    const callerIsEmailAdmin = callerEmail.toLowerCase() === "snapshot@gmail.com";
 
     const { data: isAdmin, error: adminErr } = await userClient.rpc("is_admin");
-    if ((adminErr || !isAdmin) && !callerIsEmailAdmin) {
+    if (adminErr || !isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

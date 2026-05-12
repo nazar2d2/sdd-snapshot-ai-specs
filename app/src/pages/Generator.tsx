@@ -60,6 +60,7 @@ export default function Generator() {
   const [loadingCount, setLoadingCount] = useState(0);
   const [expectedTotal, setExpectedTotal] = useState(0);
   const [progressCount, setProgressCount] = useState(0);
+  const [loadingHint, setLoadingHint] = useState<string | null>(null);
   const [partialImages, setPartialImages] = useState<ImageResult[]>([]);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const generationMetadataRef = useRef<GenerationMetadata | null>(null);
@@ -146,6 +147,7 @@ export default function Generator() {
     partialImagesRef.current = [];
     setPartialImages([]);
     setProgressCount(0);
+    setLoadingHint(null);
 
     // (Re)initialize stall detection for this job
     lastProgressAtRef.current = Date.now();
@@ -362,7 +364,7 @@ export default function Generator() {
         if (cancelled) return;
 
         try {
-          const { error: workErr } = await invokeEdgeFunctionWithRetry("generate-image", {
+          const { data: workData, error: workErr } = await invokeEdgeFunctionWithRetry("generate-image", {
             body: {
               action: "work",
               jobId: activeJobId,
@@ -410,6 +412,20 @@ export default function Generator() {
             }
             return;
           }
+
+          if (workData && typeof workData === "object") {
+            const wd = workData as Record<string, unknown>;
+            if (wd.status === "anchor_pending") {
+              const ms = typeof wd.retryAfterMs === "number" ? wd.retryAfterMs : 3000;
+              setLoadingHint("Generating your anchor image first…");
+              if (!cancelled) {
+                workerTimeouts[workerId] = setTimeout(workerTick, Math.max(500, ms) + workerId * 100);
+              }
+              return;
+            }
+          }
+
+          setLoadingHint(null);
 
           const result = await checkJobAndUpdate();
           if (result === "stalled") {
@@ -805,6 +821,7 @@ export default function Generator() {
               count={expectedTotal || loadingCount}
               progress={progressCount}
               partialImages={partialImages.map(img => ({ ...img, image: resolveImageUrl(img.image) }))}
+              message={loadingHint ?? undefined}
             />
           </div>
         )}

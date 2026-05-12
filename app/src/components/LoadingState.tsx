@@ -14,6 +14,8 @@ interface LoadingStateProps {
   count: number;
   progress?: number;
   partialImages?: PartialImage[];
+  /** Optional line shown under the phase text (e.g. anchor-pending retry). */
+  message?: string;
 }
 
 const PHASES = [
@@ -38,7 +40,7 @@ function formatElapsed(ms: number): string {
   return `${min}:${sec.toString().padStart(2, "0")}`;
 }
 
-export function LoadingState({ count, progress = 0, partialImages = [] }: LoadingStateProps) {
+export function LoadingState({ count, progress = 0, partialImages = [], message }: LoadingStateProps) {
   const total = count || 1;
   // Use the greater of backend progress count and visible partial images to avoid under-reporting
   const partialCount = partialImages.filter(p => p.image).length;
@@ -104,6 +106,9 @@ export function LoadingState({ count, progress = 0, partialImages = [] }: Loadin
             >
               {displayPhase}
             </p>
+            {message ? (
+              <p className="text-sm text-primary/90 font-medium max-w-md mx-auto">{message}</p>
+            ) : null}
           </div>
 
           {/* Progress bar */}

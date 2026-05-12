@@ -484,10 +484,18 @@ export type Database = {
       get_admin_analytics: { Args: { p_days?: number }; Returns: Json }
       get_admin_job_tasks: { Args: { p_job_id: string }; Returns: Json }
       get_admin_jobs: {
-        Args: { p_email?: string; p_limit?: number; p_status?: string }
+        Args: {
+          p_email?: string
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+        }
         Returns: Json
       }
-      get_admin_profiles: { Args: { limit_count?: number }; Returns: Json }
+      get_admin_profiles: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
       get_admin_stats: { Args: never; Returns: Json }
       get_system_prompt: { Args: { p_key: string }; Returns: string }
       get_user_profile: { Args: { user_id: string }; Returns: Json }

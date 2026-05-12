@@ -296,7 +296,7 @@ export default function Admin() {
     try {
       const [statsRes, usersRes, whitelistRes] = await Promise.allSettled([
         supabase.rpc("get_admin_stats"),
-        supabase.rpc("get_admin_profiles", { limit_count: 250 }),
+        supabase.rpc("get_admin_profiles", { p_limit: 250, p_offset: 0 }),
         supabase
           .from("whitelisted_users")
           .select("email, created_at, reason, created_by")
@@ -314,7 +314,16 @@ export default function Admin() {
 
       if (usersRes.status === "fulfilled") {
         if (usersRes.value.error) errors.push(usersRes.value.error.message);
-        else setUsers((usersRes.value.data as unknown as UserProfile[]) || []);
+        else {
+          const raw = usersRes.value.data as unknown;
+          const payload = raw as { rows?: UserProfile[] } | UserProfile[] | null;
+          const list = Array.isArray(payload)
+            ? payload
+            : Array.isArray(payload?.rows)
+              ? payload.rows
+              : [];
+          setUsers(list);
+        }
       } else {
         errors.push(usersRes.reason?.message ?? "Users fetch failed");
       }
@@ -363,9 +372,17 @@ export default function Admin() {
         p_status: status === "all" ? undefined : status,
         p_email: email?.trim() || undefined,
         p_limit: 200,
+        p_offset: 0,
       });
       if (error) throw error;
-      setJobs((data as unknown as AdminJob[]) || []);
+      const raw = data as unknown;
+      const payload = raw as { rows?: AdminJob[] } | AdminJob[] | null;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.rows)
+          ? payload.rows
+          : [];
+      setJobs(list);
     } catch (error: any) {
       console.error("Jobs fetch error:", error);
     } finally {

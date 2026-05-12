@@ -52,19 +52,48 @@ serve(async (req) => {
 
     console.log(`Processing event: ${event.type}`);
 
-    // Handle the event
-    switch (event.type) {
-      case "checkout.session.completed":
-        await handleCheckoutSessionCompleted(event.data.object, supabase);
-        break;
-      case "invoice.payment_succeeded":
-        await handleInvoicePaymentSucceeded(event.data.object, supabase);
-        break;
-      case "customer.subscription.deleted":
-        await handleSubscriptionDeleted(event.data.object, supabase);
-        break;
-      default:
-        console.log(`Unhandled event type ${event.type}`);
+    const handledTypes = new Set([
+      "checkout.session.completed",
+      "invoice.payment_succeeded",
+      "customer.subscription.deleted",
+    ]);
+
+    if (!handledTypes.has(event.type)) {
+      console.log(`Unhandled event type ${event.type}`);
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { error: idemInsertErr } = await supabase
+      .from("stripe_processed_events")
+      .insert({ event_id: event.id });
+    if (idemInsertErr?.code === "23505") {
+      console.log(`[WEBHOOK] Duplicate event ${event.id}, skipping`);
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (idemInsertErr) {
+      console.error("[WEBHOOK] idempotency insert failed:", idemInsertErr);
+      throw idemInsertErr;
+    }
+
+    try {
+      switch (event.type) {
+        case "checkout.session.completed":
+          await handleCheckoutSessionCompleted(event.data.object, supabase);
+          break;
+        case "invoice.payment_succeeded":
+          await handleInvoicePaymentSucceeded(event.data.object, supabase);
+          break;
+        case "customer.subscription.deleted":
+          await handleSubscriptionDeleted(event.data.object, supabase);
+          break;
+      }
+    } catch (handlerErr) {
+      await supabase.from("stripe_processed_events").delete().eq("event_id", event.id);
+      throw handlerErr;
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -117,11 +146,13 @@ async function getCreditsFromPrice(priceId: string, mode: "subscription" | "paym
     
     if (credits !== undefined) return credits;
 
-    console.warn(`[WEBHOOK] Could not determine credits for price ${priceId} (amount: ${amount} cents, mode: ${mode}). Returning 0.`);
-    return 0;
+    throw new Error(
+      `Unknown Stripe price ID: ${priceId} — credits NOT applied. Update the price map or product metadata.`,
+    );
   } catch (e) {
     console.error("Error fetching price details:", e);
-    return 0;
+    if (e instanceof Error && e.message.includes("Unknown Stripe price")) throw e;
+    throw new Error(`Unknown Stripe price ID: ${priceId} — credits NOT applied. ${String(e)}`);
   }
 }
 
@@ -179,6 +210,10 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: 
     }
 
     const priceId = invoice.lines.data[0]?.price?.id;
+    if (!priceId) {
+      console.error("[WEBHOOK] invoice missing price id");
+      return;
+    }
     const creditsToAdd = await getCreditsFromPrice(priceId, "subscription");
 
     // ROLLOVER LOGIC: Just ADD to existing balance.
@@ -204,6 +239,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supa
     .from("profiles")
     .update({
       subscription_status: "canceled",
+      subscription_tier: "none",
     })
     .eq("stripe_customer_id", customerId);
   console.log(`Subscription canceled for customer ${customerId}`);

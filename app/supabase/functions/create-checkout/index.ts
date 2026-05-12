@@ -2,6 +2,22 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 import Stripe from "npm:stripe@14.21.0";
 
+/** Must match subscription + top-up price IDs used in the SPA (HomepagePricing, CreditTopUpModal). */
+const ALLOWED_PRICE_IDS = new Set([
+  "price_1T3KMiBxmnkg2dwfnp5bMOLr",
+  "price_1T3KMiBxmnkg2dwfE69V01dq",
+  "price_1T3KNYBxmnkg2dwfqsFzI6Ni",
+  "price_1T3KNZBxmnkg2dwfismP3dNE",
+  "price_1T3KOOBxmnkg2dwfusX1apa0",
+  "price_1T3KOOBxmnkg2dwfqEQEEmUb",
+  "price_1T3KPDBxmnkg2dwfkVAAtk6Y",
+  "price_1T3KPDBxmnkg2dwfQ7bKJj1N",
+  "price_1T3KQABxmnkg2dwfBhJk7HBF",
+  "price_1T3KQaBxmnkg2dwfY3GJyPiZ",
+  "price_1T3KR5Bxmnkg2dwfwKZfcm1X",
+  "price_1T3KRRBxmnkg2dwfoDva8OGa",
+]);
+
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers":
@@ -43,6 +59,13 @@ serve(async (req) => {
         console.log("[create-checkout] user:", user.email);
 
         const { priceId, mode, successUrl, cancelUrl, isOneTime } = await req.json();
+
+        if (!priceId || typeof priceId !== "string" || !ALLOWED_PRICE_IDS.has(priceId)) {
+            return new Response(JSON.stringify({ error: "Invalid or disallowed price" }), {
+                status: 400,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+        }
 
         const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
             apiVersion: "2023-10-16",

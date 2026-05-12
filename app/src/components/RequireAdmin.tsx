@@ -22,51 +22,41 @@ export function RequireAdmin({ children }: RequireAdminProps) {
       }
 
       try {
-        const { data: isAdmin, error } = await supabase.rpc("is_admin");
-
-        // Fallback check
-        const isEmailAdmin = currentSession?.user?.email === 'snapshot@gmail.com';
+        const { data: adminFlag, error } = await supabase.rpc("is_admin");
 
         if (error) {
           console.warn("is_admin RPC error in RequireAdmin", error);
-          if (isEmailAdmin) {
-            setIsAdmin(true); // Allow if email matches
-          } else {
-            navigate("/admin/login", { replace: true });
-            setIsAdmin(false);
-          }
-        } else if (!isAdmin && !isEmailAdmin) {
           navigate("/admin/login", { replace: true });
           setIsAdmin(false);
-        } else {
-          setIsAdmin(true);
+          return;
         }
+
+        if (!adminFlag) {
+          navigate("/admin/login", { replace: true });
+          setIsAdmin(false);
+          return;
+        }
+
+        setIsAdmin(true);
       } catch (err) {
         console.error("Auth check failed", err);
-        // Last resort fallback
-        if (currentSession?.user?.email === 'snapshot@gmail.com') {
-          setIsAdmin(true);
-        } else {
-          navigate("/admin/login", { replace: true });
-          setIsAdmin(false);
-        }
+        navigate("/admin/login", { replace: true });
+        setIsAdmin(false);
       } finally {
         setLoading(false);
       }
     };
 
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setSession(session);
         if (!session) {
           navigate("/admin/login", { replace: true });
           setLoading(false);
         }
-      }
+      },
     );
 
-    // Check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       checkAdminAccess(session);
