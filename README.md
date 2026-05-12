@@ -36,7 +36,7 @@ Do **not** commit `app/.env` (gitignored). Use `app/.env.example` as a template.
 
 ## Task file paths
 
-Tasks in `specs/001-snapshot-ai-rebuild/tasks.md` list paths like `src/...` or `supabase/...`. They are **relative to `app/`** (for example, `src/pages/Generator.tsx` means `app/src/pages/Generator.tsx`).
+Tasks in `specs/001-snapshot-ai-rebuild/tasks.md` use **repo-relative paths** starting with `app/` (for example, `app/src/pages/Generator.tsx`). Run implementation commands from `app/` when the task says so.
 
 ## Git remote
 

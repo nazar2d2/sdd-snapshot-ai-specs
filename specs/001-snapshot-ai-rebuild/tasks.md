@@ -6,12 +6,12 @@
 **Organization**: Tasks are grouped by user story. Each story is independently testable.
 Each task references the exact file to be changed.
 
-**Application root (`app/`)**: Paths that start with `src/`, `supabase/`, `tailwind`, `package`, or `README` are relative to the **`app/`** directory in this monorepo. Example: `src/pages/Generator.tsx` means `app/src/pages/Generator.tsx`. Run `npm` and Supabase CLI commands from `app/`.
+**Application root (`app/`)**: Every task line below uses **repo-relative paths** starting with `app/` (the Vite + Supabase application). Run `npm`, `npm run build`, `npm run lint`, and Supabase CLI commands from **`app/`** (`cd app`). Imports inside source files still use `@/` or relative paths without the `app/` prefix.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies on same file)
-- **[Story]**: Which user story this task belongs to (US1–US9)
+- **[Story]**: Which user story this task belongs to (US1–US13; see `spec.md`)
 
 ---
 
@@ -20,10 +20,10 @@ Each task references the exact file to be changed.
 **Purpose**: Remove dead code and stale files before touching any live logic.
 These are the fastest wins and eliminate confusion during subsequent phases.
 
-- [ ] T001 [US7] Delete orphaned `src/pages/Index.tsx` (not referenced in App.tsx routing)
-- [ ] T002 [US7] Delete orphaned `supabase/functions/_shared/fal-vision-adapter.ts` (unused, requires FAL_KEY)
-- [ ] T003 [US7] Delete stale `tailwind.config copy.ts` from project root
-- [ ] T004 [US7] Verify `npm run build` succeeds after deletions (confirms no hidden imports)
+- [ ] T001 [US7] Delete orphaned `app/src/pages/Index.tsx` (not referenced in App.tsx routing)
+- [ ] T002 [US7] Delete orphaned `app/supabase/functions/_shared/fal-vision-adapter.ts` (unused, requires FAL_KEY)
+- [ ] T003 [US7] Delete stale `app/tailwind.config copy.ts` (duplicate Tailwind config next to `app/package.json`)
+- [ ] T004 [US7] From `app/`, verify `npm run build` succeeds after deletions (confirms no hidden imports)
 
 **Checkpoint**: Build passes; three orphaned files are gone.
 
@@ -33,8 +33,8 @@ These are the fastest wins and eliminate confusion during subsequent phases.
 
 **Purpose**: Create shared utilities that multiple user stories depend on.
 
-- [ ] T005 [P] Create `supabase/functions/_shared/cors.ts` — `buildCorsHeaders()` that reads `SITE_URL` env var; falls back to `"null"` with warning if unset
-- [ ] T006 [P] Create `supabase/migrations/20260512_admin_pagination_rpcs.sql` — add `p_limit INT DEFAULT 50` and `p_offset INT DEFAULT 0` to `admin_get_users` and `admin_get_jobs` RPCs; include `total_count` in response JSON
+- [ ] T005 [P] Create `app/supabase/functions/_shared/cors.ts` — `buildCorsHeaders()` that reads `SITE_URL` env var; falls back to `"null"` with warning if unset
+- [ ] T006 [P] Create `app/supabase/migrations/20260512_admin_pagination_rpcs.sql` — add `p_limit INT DEFAULT 50` and `p_offset INT DEFAULT 0` to `admin_get_users` and `admin_get_jobs` RPCs; include `total_count` in response JSON
 
 **Checkpoint**: Shared CORS helper available; pagination RPCs written and ready to migrate.
 
@@ -50,11 +50,11 @@ exclusively on `profiles.is_admin` DB flag via `is_admin()` RPC.
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Remove the hardcoded `snapshot@gmail.com` email fallback from `src/components/RequireAdmin.tsx` — there are THREE occurrences (lines 28, 32, 47); delete the `isEmailAdmin` variable, the `if (isEmailAdmin) setIsAdmin(true)` fallback in the RPC error branch, AND the last-resort catch-block fallback that also checks the email. Keep only the `is_admin()` Supabase RPC call as the sole gate
-- [ ] T008 [US2] Search and remove `snapshot@gmail.com` from `admin_rpc.sql` (root-level SQL file) — replace any `WHERE email = 'snapshot@gmail.com'` logic with `WHERE is_admin = true`
-- [ ] T009 [US2] Audit all `supabase/migrations/*.sql` files for hardcoded email references; add a corrective migration `20260512_remove_hardcoded_admin.sql` if any migration seeds by email instead of by UUID+flag
+- [ ] T007 [US2] Remove every hardcoded `snapshot@gmail.com` fallback from `app/src/components/RequireAdmin.tsx` — delete the `isEmailAdmin` variable, the RPC-error branch that sets admin true when the email matches, the `!isAdmin && !isEmailAdmin` coupling (admin must come from RPC only), and the `catch` block that grants access by email. Keep only a successful `is_admin()` RPC result as proof of admin access.
+- [ ] T008 [US2] Search and remove `snapshot@gmail.com` from `app/admin_rpc.sql` — replace any `WHERE email = 'snapshot@gmail.com'` logic with `WHERE is_admin = true`
+- [ ] T009 [US2] Audit all `app/supabase/migrations/*.sql` files for hardcoded email references; add a corrective migration `app/supabase/migrations/20260512_remove_hardcoded_admin.sql` if any migration seeds by email instead of by UUID+flag
 
-**Checkpoint**: `rg "snapshot@gmail.com" src/ supabase/ admin_rpc.sql` returns zero results.
+**Checkpoint**: From the repo root, `rg "snapshot@gmail.com" app/src app/supabase app/admin_rpc.sql` returns zero results (or run the same search from `app/` against `src`, `supabase`, and `admin_rpc.sql`).
 
 ---
 
@@ -67,10 +67,10 @@ non-production origin returns `Access-Control-Allow-Origin: https://snap-shot.ai
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Update `supabase/functions/admin-create-user/index.ts` — replace inline CORS headers object with `buildCorsHeaders()` from `../_shared/cors.ts` (depends on T005)
-- [ ] T011 [US3] Update `supabase/functions/admin-delete-user/index.ts` — same CORS replacement (depends on T005)
-- [ ] T012 [US3] Update `supabase/functions/admin-purchases/index.ts` — same CORS replacement (depends on T005)
-- [ ] T013 [US3] Update `supabase/functions/admin-whitelist/index.ts` — same CORS replacement (depends on T005)
+- [ ] T010 [US3] Update `app/supabase/functions/admin-create-user/index.ts` — replace inline CORS headers object with `buildCorsHeaders()` from `../_shared/cors.ts` (depends on T005)
+- [ ] T011 [US3] Update `app/supabase/functions/admin-delete-user/index.ts` — same CORS replacement (depends on T005)
+- [ ] T012 [US3] Update `app/supabase/functions/admin-purchases/index.ts` — same CORS replacement (depends on T005)
+- [ ] T013 [US3] Update `app/supabase/functions/admin-whitelist/index.ts` — same CORS replacement (depends on T005)
 
 **Checkpoint**: All four admin functions use `buildCorsHeaders()`. No `"*"` CORS string remains
 in any admin function file.
@@ -87,9 +87,9 @@ in any admin function file.
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] In `supabase/functions/generate-image/index.ts`: locate the HD generation branch in the `work` action handler; add a check — if the `anchor` variant task for the same job is not `completed`, return `{ status: "anchor_pending", retryAfterMs: 3000, message: "Anchor image is still generating. Retry after the specified delay." }`
-- [ ] T015 [US1] In `src/pages/Generator.tsx`: update the polling/retry logic that handles the `work` action response — when `status === "anchor_pending"`, show a `<LoadingState>` message "Generating your anchor image first…" and schedule a retry after `retryAfterMs` ms using the existing retry mechanism in `src/lib/invokeEdgeFunctionWithRetry.ts`
-- [ ] T016 [US1] In `src/components/LoadingState.tsx`: add an optional `message` prop that renders below the spinner so the anchor-pending message can be displayed without modifying the spinner itself
+- [ ] T014 [US1] In `app/supabase/functions/generate-image/index.ts`: locate the HD generation branch in the `work` action handler; add a check — if the `anchor` variant task for the same job is not `completed`, return `{ status: "anchor_pending", retryAfterMs: 3000, message: "Anchor image is still generating. Retry after the specified delay." }`
+- [ ] T015 [US1] In `app/src/pages/Generator.tsx`: update the polling/retry logic that handles the `work` action response — when `status === "anchor_pending"`, show a `<LoadingState>` message "Generating your anchor image first…" and schedule a retry after `retryAfterMs` ms using the existing retry mechanism in `app/src/lib/invokeEdgeFunctionWithRetry.ts`
+- [ ] T016 [US1] In `app/src/components/LoadingState.tsx`: add an optional `message` prop that renders below the spinner so the anchor-pending message can be displayed without modifying the spinner itself
 
 **Checkpoint**: HD generation shows "Generating your anchor image first…" when anchor not ready.
 No frozen spinner. Retry recovers automatically.
@@ -105,7 +105,7 @@ invoke `create_job` → check Supabase logs; confirm `[WASM] loading` does NOT a
 
 ### Implementation for User Story 4
 
-- [ ] T017 [US4] In `supabase/functions/generate-image/index.ts`: find the top-level `import ImageScript from "imagescript/index.js"` (or equivalent); move it inside the specific code branch that performs image encoding using `const { default: ImageScript } = await import("imagescript/index.js")`. Remove the top-level static import.
+- [ ] T017 [US4] In `app/supabase/functions/generate-image/index.ts`: find the top-level `import ImageScript from "imagescript/index.js"` (or equivalent); move it inside the specific code branch that performs image encoding using `const { default: ImageScript } = await import("imagescript/index.js")`. Remove the top-level static import.
 
 **Checkpoint**: Supabase Edge Function logs show no WASM load on `create_job` invocations.
 
@@ -120,9 +120,9 @@ The top-level `switch` block delegates to them; it contains no inline business l
 
 ### Implementation for User Story 5
 
-- [ ] T018 [US5] In `supabase/functions/generate-image/index.ts`: extract the `create_job` action logic into `async function handleCreateJob(req: Request, user: User, supabase: SupabaseClient): Promise<Response>` with a JSDoc comment describing its contract. Wire `case "create_job":` to call it.
-- [ ] T019 [US5] In `supabase/functions/generate-image/index.ts`: extract the `work` action logic (now including the anchor-pending check from T014) into `async function handleWork(req: Request, user: User, supabase: SupabaseClient): Promise<Response>` with JSDoc. Wire `case "work":` to call it.
-- [ ] T020 [US5] In `supabase/functions/generate-image/index.ts`: extract the `get_results` action logic into `async function handleGetResults(req: Request, user: User, supabase: SupabaseClient): Promise<Response>` with JSDoc. Wire `case "get_results":` to call it.
+- [ ] T018 [US5] In `app/supabase/functions/generate-image/index.ts`: extract the `create_job` action logic into `async function handleCreateJob(req: Request, user: User, supabase: SupabaseClient): Promise<Response>` with a JSDoc comment describing its contract. Wire `case "create_job":` to call it.
+- [ ] T019 [US5] In `app/supabase/functions/generate-image/index.ts`: extract the `work` action logic (now including the anchor-pending check from T014) into `async function handleWork(req: Request, user: User, supabase: SupabaseClient): Promise<Response>` with JSDoc. Wire `case "work":` to call it.
+- [ ] T020 [US5] In `app/supabase/functions/generate-image/index.ts`: extract the `get_results` action logic into `async function handleGetResults(req: Request, user: User, supabase: SupabaseClient): Promise<Response>` with JSDoc. Wire `case "get_results":` to call it.
 - [ ] T021 [US5] Verify the refactored `generate-image` edge function passes a full generation flow end-to-end: create_job → multiple work invocations → get_results → images appear in gallery. No functional regression.
 
 **Checkpoint**: Switch block is a routing table of named function calls. Three handler functions
@@ -135,16 +135,16 @@ exist with JSDoc. End-to-end generation flow passes.
 **Goal**: `Admin.tsx` shrinks to < 150 lines; each tab lives in its own component file.
 
 **Independent Test**: Open each admin tab in browser → all data loads correctly → open
-`src/pages/Admin.tsx` → under 150 lines → open `src/components/admin/` → five tab files present.
+`app/src/pages/Admin.tsx` → under 150 lines → open `app/src/components/admin/` → five tab files present.
 
 ### Implementation for User Story 6
 
-- [ ] T022 [P] [US6] Create `src/components/admin/UsersTab.tsx` — extract all Users tab JSX, data-fetching calls, and handler functions from `src/pages/Admin.tsx`
-- [ ] T023 [P] [US6] Create `src/components/admin/JobsTab.tsx` — extract all Jobs tab JSX and handlers from `src/pages/Admin.tsx`; wire the paginated `admin_get_jobs` RPC call (depends on T006)
-- [ ] T024 [P] [US6] Create `src/components/admin/AnalyticsTab.tsx` — extract Analytics tab from `src/pages/Admin.tsx`
-- [ ] T025 [P] [US6] Create `src/components/admin/WhitelistTab.tsx` — extract Whitelist tab from `src/pages/Admin.tsx`
-- [ ] T026 [P] [US6] Create `src/components/admin/PurchasesTab.tsx` — extract Purchases tab from `src/pages/Admin.tsx`
-- [ ] T027 [US6] Refactor `src/pages/Admin.tsx` to import and render the five tab components; reduce file to the tab-switching router shell (< 150 lines); ensure all state previously local to Admin.tsx is moved to the appropriate sub-component (depends on T022–T026)
+- [ ] T022 [P] [US6] Create `app/src/components/admin/UsersTab.tsx` — extract all Users tab JSX, data-fetching calls, and handler functions from `app/src/pages/Admin.tsx`
+- [ ] T023 [P] [US6] Create `app/src/components/admin/JobsTab.tsx` — extract all Jobs tab JSX and handlers from `app/src/pages/Admin.tsx`; wire the paginated `admin_get_jobs` RPC call (depends on T006)
+- [ ] T024 [P] [US6] Create `app/src/components/admin/AnalyticsTab.tsx` — extract Analytics tab from `app/src/pages/Admin.tsx`
+- [ ] T025 [P] [US6] Create `app/src/components/admin/WhitelistTab.tsx` — extract Whitelist tab from `app/src/pages/Admin.tsx`
+- [ ] T026 [P] [US6] Create `app/src/components/admin/PurchasesTab.tsx` — extract Purchases tab from `app/src/pages/Admin.tsx`
+- [ ] T027 [US6] Refactor `app/src/pages/Admin.tsx` to import and render the five tab components; reduce file to the tab-switching router shell (< 150 lines); ensure all state previously local to Admin.tsx is moved to the appropriate sub-component (depends on T022–T026)
 - [ ] T028 [US6] Wire `UsersTab.tsx` and `JobsTab.tsx` to use the paginated `admin_get_users` and `admin_get_jobs` RPCs with page-number state and a pagination control component (depends on T006, T022, T023)
 
 **Checkpoint**: Admin.tsx < 150 lines. All five tabs load data. Pagination controls visible
@@ -161,7 +161,7 @@ show an error entry → credits are NOT applied.
 
 ### Implementation for User Story 8
 
-- [ ] T029 [US8] In `supabase/functions/stripe-webhook/index.ts`: locate the price-ID-to-credits lookup (the hardcoded map or metadata lookup); replace the current `|| 0` fallback with `throw new Error(\`Unknown Stripe price ID: \${priceId} — credits NOT applied. Update the price map.\`)`
+- [ ] T029 [US8] In `app/supabase/functions/stripe-webhook/index.ts`: locate the price-ID-to-credits lookup (the hardcoded map or metadata lookup); replace the current `|| 0` fallback with `throw new Error(\`Unknown Stripe price ID: \${priceId} — credits NOT applied. Update the price map.\`)`
 
 **Checkpoint**: Supabase function logs show the error on unknown price ID. No 0-credit silent
 application occurs.
@@ -177,8 +177,8 @@ or equivalent rather than `.limit(500)`.
 
 ### Implementation for User Story 9
 
-- [ ] T030 [US9] In `src/integrations/supabase/hooks/useUserImages.ts`: replace the unconditional 500-row fetch with a paginated approach — add `page` and `pageSize` (default 50) parameters; use Supabase `.range(offset, offset + pageSize - 1)` query; expose `totalCount`, `hasNextPage`, and a `loadNextPage` function
-- [ ] T031 [US9] In `src/pages/MyImages.tsx`: wire the updated `useUserImages` hook — add "Load more" button (or infinite scroll) that calls `loadNextPage`; show a total count indicator
+- [ ] T030 [US9] In `app/src/integrations/supabase/hooks/useUserImages.ts`: replace the unconditional 500-row fetch with a paginated approach — add `page` and `pageSize` (default 50) parameters; use Supabase `.range(offset, offset + pageSize - 1)` query; expose `totalCount`, `hasNextPage`, and a `loadNextPage` function
+- [ ] T031 [US9] In `app/src/pages/MyImages.tsx`: wire the updated `useUserImages` hook — add "Load more" button (or infinite scroll) that calls `loadNextPage`; show a total count indicator
 
 **Checkpoint**: My Images page loads 50 rows on mount. "Load more" fetches next 50. Network
 tab confirms range-based queries.
@@ -195,7 +195,7 @@ the core generation flow.
 
 ### User Story 10 — Subscription Cancellation Revokes Tier
 
-- [ ] T038 [US10] In `supabase/functions/stripe-webhook/index.ts`: locate `handleSubscriptionDeleted` (around line 201); add `subscription_tier: "none"` to the `.update({ ... })` object alongside the existing `subscription_status: "canceled"`. Confirm one-time top-up credit balance is NOT cleared (only tier is set to none).
+- [ ] T038 [US10] In `app/supabase/functions/stripe-webhook/index.ts`: locate `handleSubscriptionDeleted` (around line 201); add `subscription_tier: "none"` to the `.update({ ... })` object alongside the existing `subscription_status: "canceled"`. Confirm one-time top-up credit balance is NOT cleared (only tier is set to none).
 
 **Checkpoint**: Cancel a test Stripe subscription → query `profiles` → `subscription_tier = "none"` and credits are preserved.
 
@@ -203,8 +203,8 @@ the core generation flow.
 
 ### User Story 11 — Webhook Idempotency
 
-- [ ] T039 [US11] Create migration `supabase/migrations/20260512_stripe_processed_events.sql` — add table `stripe_processed_events (event_id TEXT PRIMARY KEY, processed_at TIMESTAMPTZ DEFAULT now())` with an RLS policy allowing only service-role inserts
-- [ ] T040 [US11] In `supabase/functions/stripe-webhook/index.ts`: at the top of the handler (after signature verification), check if `event.id` exists in `stripe_processed_events` via `adminClient`; if found, return HTTP 200 immediately (skip processing); if not found, proceed and insert the event ID into `stripe_processed_events` before returning (depends on T039)
+- [ ] T039 [US11] Create migration `app/supabase/migrations/20260512_stripe_processed_events.sql` — add table `stripe_processed_events (event_id TEXT PRIMARY KEY, processed_at TIMESTAMPTZ DEFAULT now())` with an RLS policy allowing only service-role inserts
+- [ ] T040 [US11] In `app/supabase/functions/stripe-webhook/index.ts`: at the top of the handler (after signature verification), check if `event.id` exists in `stripe_processed_events` via `adminClient`; if found, return HTTP 200 immediately (skip processing); if not found, proceed and insert the event ID into `stripe_processed_events` before returning (depends on T039)
 
 **Checkpoint**: Send the same test webhook event ID twice → credits applied exactly once → `stripe_processed_events` has one row for that event ID.
 
@@ -212,7 +212,7 @@ the core generation flow.
 
 ### User Story 12 — Checkout Price ID Allowlist
 
-- [ ] T041 [US12] In `supabase/functions/create-checkout/index.ts`: add a `const ALLOWED_PRICE_IDS = new Set([...])` constant at the top of the file containing all known subscription and top-up price IDs (8 subscription + 4 top-up = 12 total, sourced from `src/components/homepage/HomepagePricing.tsx` and `src/components/CreditTopUpModal.tsx`); add an early-return check `if (!ALLOWED_PRICE_IDS.has(priceId)) return 400 response` before the Stripe session creation logic
+- [ ] T041 [US12] In `app/supabase/functions/create-checkout/index.ts`: add a `const ALLOWED_PRICE_IDS = new Set([...])` constant at the top of the file containing all known subscription and top-up price IDs (8 subscription + 4 top-up = 12 total, sourced from `app/src/components/homepage/HomepagePricing.tsx` and `app/src/components/CreditTopUpModal.tsx`); add an early-return check `if (!ALLOWED_PRICE_IDS.has(priceId)) return 400 response` before the Stripe session creation logic
 
 **Checkpoint**: Call `create-checkout` with `priceId: "price_FAKE"` → HTTP 400 → no Stripe session created.
 
@@ -220,8 +220,8 @@ the core generation flow.
 
 ### User Story 13 — Zero-Credit Gate and useCredits Fix
 
-- [ ] T042 [US13] In `src/integrations/supabase/hooks/useCredits.ts`: add `is_unlimited` to the `.select(...)` query alongside existing fields (the DB column is `is_unlimited`, NOT `unlimited` — see migration `20260120200000_add_unlimited_flag.sql`); add `is_unlimited: boolean | null` to the `ProfileData` interface and the fallback return objects; expose it from the hook as `isUnlimited` so components can read it
-- [ ] T043 [US13] In `src/pages/Generator.tsx`: add `import { useCredits } from "@/integrations/supabase/hooks/useCredits"` and `import { CreditTopUpModal } from "@/components/CreditTopUpModal"` at the top (neither is currently imported); call `const { credits, isUnlimited, isLoading } = useCredits()` near the top of the component; if `!isLoading && credits === 0 && !isUnlimited` render an inline banner "You've used all your credits. Top up to generate more." with a "Top up" button that opens `<CreditTopUpModal>` — the generation form remains hidden until credits are available (depends on T042)
+- [ ] T042 [US13] In `app/src/integrations/supabase/hooks/useCredits.ts`: add `is_unlimited` to the `.select(...)` query alongside existing fields (the DB column is `is_unlimited`, NOT `unlimited` — see `app/supabase/migrations/20260120200000_add_unlimited_flag.sql`); add `is_unlimited: boolean | null` to the `ProfileData` interface and the fallback return objects; expose it from the hook as `isUnlimited` so components can read it
+- [ ] T043 [US13] In `app/src/pages/Generator.tsx`: add `import { useCredits } from "@/integrations/supabase/hooks/useCredits"` and `import { CreditTopUpModal } from "@/components/CreditTopUpModal"` at the top (neither is currently imported); call `const { credits, isUnlimited, isLoading } = useCredits()` near the top of the component; if `!isLoading && credits === 0 && !isUnlimited` render an inline banner "You've used all your credits. Top up to generate more." with a "Top up" button that opens `<CreditTopUpModal>` — the generation form remains hidden until credits are available (depends on T042)
 
 **Checkpoint**: Set `profiles.credits = 0`, `is_unlimited = false`, `subscription_tier = "paid"` → open `/app` → see the top-up prompt, not the generator form.
 
@@ -231,12 +231,12 @@ the core generation flow.
 
 **Purpose**: Cleanup, documentation, and final verification after all stories are complete.
 
-- [ ] T032 [P] Run `npm run lint` and fix any ESLint errors introduced by the refactoring
-- [ ] T033 [P] Run `npm run build` and confirm zero TypeScript errors in the final build
+- [ ] T032 [P] From `app/`, run `npm run lint` and fix any ESLint errors introduced by the refactoring
+- [ ] T033 [P] From `app/`, run `npm run build` and confirm zero TypeScript errors in the final build
 - [ ] T034 Run through the full Quickstart checklist in `specs/001-snapshot-ai-rebuild/quickstart.md` — verify all 13 user stories pass their acceptance tests
-- [ ] T035 Run `rg "snapshot@gmail.com" src/ supabase/ *.sql` — confirm zero matches
-- [ ] T036 Run `rg "Access-Control-Allow-Origin.*\*" supabase/functions/admin-` — confirm zero matches in admin functions
-- [ ] T037 [P] Update `README.md` to remove the Lovable template boilerplate and replace with a real project description for snap-shot.ai
+- [ ] T035 From the repo root, run `rg "snapshot@gmail.com" app/src app/supabase app/admin_rpc.sql` — confirm zero matches (or `grep -R "snapshot@gmail.com" app/src app/supabase app/admin_rpc.sql` if `rg` is not installed)
+- [ ] T036 From the repo root, run `rg "Access-Control-Allow-Origin.*\*" app/supabase/functions/admin-*` — confirm zero matches in admin function sources (or `grep -R "Access-Control-Allow-Origin" app/supabase/functions/admin-* | grep '\*'` as an equivalent check)
+- [ ] T037 [P] Update `app/README.md` to remove the Lovable template boilerplate and replace with a real project description for snap-shot.ai (repo root `README.md` is the monorepo overview)
 
 ---
 
@@ -338,10 +338,9 @@ Continue from MVP:
 ## Notes
 
 - [P] tasks = different files, no shared dependencies — safe to run in parallel
-- [Story] label maps to user stories US1–US9 in spec.md for traceability
-- T014 and T019 both modify `generate-image/index.ts` — they MUST be sequential (T014 first)
-- All `generate-image/index.ts` changes in Phases 5 and 7 MUST be end-to-end tested (T021)
+- [Story] label maps to user stories US1–US13 in `spec.md` for traceability
+- T014 and T019 both modify `app/supabase/functions/generate-image/index.ts` — they MUST be sequential (T014 first)
+- All `app/supabase/functions/generate-image/index.ts` changes in Phases 5 and 7 MUST be end-to-end tested (T021)
   before deployment — this is the revenue-critical path
 - Admin tab split (T022–T026) should be reviewed per-tab before T027 assembles them
-- The `supabase db push` command (or `npm run db:push`) must be run after T006 and T009
-  to apply the new migrations
+- After T006 and T009, run `supabase db push` or `npm run db:push` from **`app/`** to apply the new migrations
