@@ -72,3 +72,12 @@ npm run db:push
 3. Optional: `npm run db:link` then `npm run db:push` for migrations.
 
 Never commit `.env`.
+
+## GitHub Actions (деплой Edge Functions)
+
+У `app/.github/workflows/deploy_functions.yml` використовується **`secrets.SUPABASE_ACCESS_TOKEN`**.
+
+У репозиторії GitHub: **Settings → Secrets and variables → Actions → New repository secret**  
+Ім’я: `SUPABASE_ACCESS_TOKEN`, значення: Personal Access Token з [Supabase Account → Tokens](https://supabase.com/dashboard/account/tokens).
+
+Якщо раніше в zip був захардкожений токен у workflow — **обов’язково відкликайте його** в Supabase і створіть новий для секрету в GitHub.
