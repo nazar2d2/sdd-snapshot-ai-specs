@@ -1,0 +1,26 @@
+# Cursor agent credentials & local-only state (skills/commands stay tracked)
+.cursor/mcp.json
+.cursor/.tokens
+.cursor/.cache/
+
+# OS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# Secrets (never commit)
+.env
+.env.*
+!.env.example
